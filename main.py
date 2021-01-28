@@ -10,15 +10,14 @@ global Game
 players = []
 Game = None
 
-emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"]
+colors = (0xFD2D00, 0x0092FD)
+emojis = ["6️⃣","5️⃣","4️⃣","3️⃣","2️⃣","1️⃣"]
 assets = 'assets'
 
 client = discord.Client()
 wake_command = "pp!"
 
 def send_board(brd_imgs):
-    colors = (0xFD2D00, 0x0092FD)
-
     embed = discord.Embed(title=f"**Its** {players[Game.turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game.turn])
     embed.set_footer(text="have fun lmfao")
 
@@ -30,13 +29,18 @@ def send_board(brd_imgs):
 @client.event
 async def on_message(message):
     global Game
+    global current_embed
+
     if message.author == client.user:
         return
 
-    if message.content.startswith(wake_command + "endgame") and message.author in players and Game is not None:
+    if message.content.startswith(wake_command + "endgame") and (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
         Game = None
+
         players.clear()
         await message.add_reaction("👍")
+    elif message.content.startswith(wake_command + "endgame") and Game is not None and not (message.author in players or message.author.guild_permissions.administrator):
+        await message.channel.send("You do not have permission to end this game")
     elif message.content.startswith(wake_command + "endgame") and Game is None:
         await message.channel.send("There are no games to end")
 
@@ -52,30 +56,33 @@ async def on_message(message):
         await message.channel.send(f"**Starting Mancala Game**\n    -{players[0].mention} vs {players[1].mention}")
 
         file, embed = send_board([Game.img_board.get_board(Game.turn)[Game.turn]])
-        start_grid = await message.channel.send(file=file, embed=embed)
-        await message.channel.send(players[Game.turn].mention)
+        current_embed = await message.channel.send(players[Game.turn].mention, file=file, embed=embed)
 
         for emoji in emojis:
-            await start_grid.add_reaction(emoji)
-    elif len(players) != 0:
-        message.channel.send("You need one other person to start")
+            await current_embed.add_reaction(emoji)
+
+    elif message.content.startswith(wake_command + "startgame") and len(message.mentions) == 0:
+        await message.channel.send("You need one other person to start")
+    elif message.content.startswith(wake_command + "startgame") and len(players) != 0:
+        await message.channel.send("There is currently a game in progress")
 
 @client.event
 async def on_reaction_add(reaction, user):
     global Game
+    global current_embed
+
     emoji = reaction.emoji
 
-    if user.bot or len(players) == 0: return
+    if user.bot or len(players) == 0 or reaction.message != current_embed: return
     if user != players[Game.turn] or emoji not in emojis: return
 
     imgs = Game.move(emojis.index(emoji))
     if imgs is not None:
         file, embed = send_board(imgs[Game.turn])
-        next_board = await reaction.message.channel.send(file=file, embed=embed)
-        await reaction.message.channel.send(players[Game.turn].mention)
+        current_embed = await reaction.message.channel.send(players[Game.turn].mention, file=file, embed=embed)
 
         for emoji in emojis:
-            await next_board.add_reaction(emoji)
+            await current_embed.add_reaction(emoji)
     else:
         await reaction.message.channel.send(f"{players[Game.turn].mention}, that space is empty")
 
@@ -84,14 +91,12 @@ async def on_reaction_add(reaction, user):
         Game.goals[1] += sum(Game.board[1])
 
         winner = Game.goals.index(max(Game.goals))
-        colors = (0xFD2D00, 0x0092FD)
-        await reaction.message.channel.send(players[winner].mention)
 
         embed = discord.Embed(title=f"**{players[winner]} WON!!!!!11!!1!!**", color=colors[winner])
         embed.set_footer(text="gg")
 
         embed.set_image(url=players[winner].avatar_url)
-        final = await reaction.message.channel.send(embed=embed)
+        final = await reaction.message.channel.send(players[winner].mention, embed=embed)
         await final.add_reaction("👍")
         players.clear()
 
