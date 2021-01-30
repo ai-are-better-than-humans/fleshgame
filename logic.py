@@ -27,14 +27,14 @@ class MancalaBoard(object):
 
     def get_board(self, numsize=35):
         leap = 130
+
         p = [(285, 280), (935, 130)]
-
         p2 = [(1115, 250), (140, 250)]
-
         score = [(1100, 60), (135, 55)]
+
         board1 = self.board_ico.copy()
         board2 = self.board_ico.copy()
-        
+
         font = ImageFont.truetype(r'C:\Users\System-Pc\Desktop\arial.ttf', numsize)
 
         for x in range(2):
@@ -42,7 +42,7 @@ class MancalaBoard(object):
                 for ii in i:
                     dir = [1, -1]
                     pos = (p[x][0] + leap * j * dir[x], p[x][1])
-                    board1.paste(ii.ico, (pos[0]+ii.pos_offset[0],pos[1]+ii.pos_offset[1]), ii.ico)
+                    board1.paste(ii.ico, (pos[0] + ii.pos_offset[0], pos[1] + ii.pos_offset[1]), ii.ico)
 
                     draw = ImageDraw.Draw(board1)
 
@@ -55,23 +55,22 @@ class MancalaBoard(object):
                 draw = ImageDraw.Draw(board1)
                 draw.text(score[x], str(len(self.goals[x])), fill="black", font=font, align="right")
 
-
-            for j, i in enumerate(self.zones[(x+1)%2]):
+            for j, i in enumerate(self.zones[(x + 1) % 2]):
                 for ii in i:
                     dir = [1, -1]
                     pos = (p[x][0] + leap * j * dir[x], p[x][1])
-                    board2.paste(ii.ico, (pos[0]+ii.pos_offset[0],pos[1]+ii.pos_offset[1]), ii.ico)
+                    board2.paste(ii.ico, (pos[0] + ii.pos_offset[0], pos[1] + ii.pos_offset[1]), ii.ico)
 
                     draw = ImageDraw.Draw(board2)
 
                     dir[0] = 1.9
                     draw.text((pos[0], pos[1] + 50 * dir[x]), str(len(i)), fill="black", font=font, align="right")
 
-            for l in self.goals[(x+1)%2]:
+            for l in self.goals[(x + 1) % 2]:
                 board2.paste(l.ico, (p2[x][0] + l.pos_offset[0], p2[x][1] + l.pos_offset[1]), l.ico)
 
                 draw = ImageDraw.Draw(board2)
-                draw.text(score[x], str(len(self.goals[(x+1)%2])), fill="black", font=font, align="right")
+                draw.text(score[x], str(len(self.goals[(x + 1) % 2])), fill="black", font=font, align="right")
 
         return self.gen_frame(board1), self.gen_frame(board2)
 
@@ -94,21 +93,17 @@ class Board(object):
         self.img_board = MancalaBoard(asset_dir, offset)
 
     def move(self, slot):
-        images = [[], []]
+        images = []
         current_slot = slot
         count = [self.board[self.turn][slot], list(self.img_board.zones[self.turn][slot])]
         if count[0] == 0: return
 
-        b1, b2 = self.img_board.get_board()
-        images[0].append(b1)
-        images[1].append(b2)
+        images.append(self.img_board.get_board())
 
         self.board[self.turn][slot] = 0
         self.img_board.zones[self.turn][slot].clear()
 
-        b1, b2 = self.img_board.get_board()
-        images[0].append(b1)
-        images[1].append(b2)
+        images.append(self.img_board.get_board())
 
         while count[0] > 0:
             current_slot += 1
@@ -119,69 +114,31 @@ class Board(object):
                 self.img_board.goals[self.turn].append(count[1][count[0]%len(count[1])])
 
                 count[0] -= 1
-                b1, b2 = self.img_board.get_board()
-                images[0].append(b1)
-                images[1].append(b2)
+                images.append(self.img_board.get_board())
 
             if count[0] != 0:
                 self.board[side][current_slot % 6] += 1
                 self.img_board.zones[side][current_slot % 6].append(count[1][count[0]%len(count[1])])
 
                 count[0] -= 1
-                b1, b2 = self.img_board.get_board()
-                images[0].append(b1)
-                images[1].append(b2)
+                images.append(self.img_board.get_board())
 
                 if count[0] == 0:
+
+                    if self.board[self.turn][current_slot % 6] == 1 and self.board[(self.turn - 1) % 2][5 - current_slot % 6] != 0:
+                        self.goals[self.turn] += self.board[self.turn][current_slot % 6] + self.board[(self.turn - 1) % 2][5 - current_slot % 6]
+
+                        self.img_board.goals[self.turn].extend(self.img_board.zones[self.turn][current_slot % 6])
+                        self.img_board.goals[self.turn].extend(self.img_board.zones[(self.turn - 1) % 2][5-current_slot % 6])
+
+                        self.board[self.turn][current_slot % 6] = 0
+                        self.board[(self.turn - 1) % 2][5 - current_slot % 6] = 0
+
+                        self.img_board.zones[self.turn][current_slot % 6].clear()
+                        self.img_board.zones[(self.turn - 1) % 2][5-current_slot % 6].clear()
+
+                        images.append(self.img_board.get_board())
+
                     self.turn = (self.turn + 1) % 2
 
-                    if self.board[(self.turn - 1) % 2][current_slot % 6] == 1 and self.board[self.turn][5 - current_slot % 6] != 0:
-                        self.goals[(self.turn - 1) % 2] += self.board[(self.turn - 1) % 2][current_slot % 6] + self.board[self.turn][5 - current_slot % 6]
-
-                        self.img_board.goals[(self.turn - 1) % 2].extend(self.img_board.zones[(self.turn - 1) % 2][current_slot % 6])
-                        self.img_board.goals[(self.turn - 1) % 2].extend(self.img_board.zones[self.turn][5-current_slot % 6])
-
-                        self.board[(self.turn - 1) % 2][current_slot % 6] = 0
-                        self.board[self.turn][5 - current_slot % 6] = 0
-
-                        self.img_board.zones[(self.turn - 1) % 2][current_slot % 6].clear()
-                        self.img_board.zones[self.turn][5-current_slot % 6].clear()
-
-                        b1, b2 = self.img_board.get_board()
-                        images[0].append(b1)
-                        images[1].append(b2)
-
-        return images
-
-    def print_board(self):
-        print('-' * 15 + '\n ', end='|')
-        for i in range(6):
-            print(self.board[0][5 - i], end='|')
-
-        print('\n' + str(self.goals[0]) + ' ' * 13 + str(self.goals[1]))
-
-        print(' ', end='|')
-        for i in self.board[1]:
-            print(i, end='|')
-        print('\n' + '-' * 15 + '\n')
-
-
-
-if __name__ == "__main__":
-    assets = 'assets'
-    Game = Board(assets, 15)
-
-    moves = [5, 3, 1]
-    current_move = 0
-
-    #print("starting:")
-    #Game.print_board()
-    #print("\n\n\n")
-
-    while current_move < len(moves):
-        print(f"p{Game.turn}:")
-        move = Game.move(moves[current_move])
-        move[0].save(f'gif_files/{current_move}.gif', save_all=True, append_images=move, duration=1000)
-        #Game.print_board()
-
-        current_move += 1
+        return [i[0] for i in images], [i[1] for i in images]
