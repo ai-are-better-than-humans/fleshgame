@@ -36,22 +36,37 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith(wake_command + "endgame") and (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
-        Game = None
-        players = []
+    async def end_game(Game, players, response):
+        if (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
+            Game = None
+            players = []
 
-        await message.add_reaction("👍")
+            await response.add_reaction("👍")
 
-    # Some help commands if anyone is confused about why 'x' didnt work
-    elif message.content.startswith(wake_command + "endgame") and Game is not None and not (message.author in players or message.author.guild_permissions.administrator):
-        await message.channel.send("You do not have permission to end this game")
-    elif message.content.startswith(wake_command + "endgame") and Game is None:
-        await message.channel.send("There are no games to end")
+        # Some help commands if anyone is confused about why 'x' didnt work
+        elif Game is not None and not (response.author in players or response.author.guild_permissions.administrator):
+            await response.channel.send("You do not have permission to end this game")
+        elif Game is None:
+            await response.channel.send("There are no games to end")
 
-    if message.content.startswith(wake_command + "startgame") and len(message.mentions) > 0 and len(players) == 0:
+    if message.content.startswith(wake_command + "endgame"):
+        await end_game(Game, players, message)
+
+    def check(m):
+        return ('y' in m.content.lower() or 'n' in m.content.lower()) and m.channel == message.channel and (m.author in players or message.author.guild_permissions.administrator)
+
+    if message.content.startswith(wake_command + "startgame") and len(message.mentions) > 0:
         if message.mentions[0] == client.user:
             await message.channel.send("Go find a friend, loser.")
             return
+
+        elif len(players) != 0 and (message.author in players or message.author.guild_permissions.administrator):
+
+            await message.channel.send("You are already playing a game. End this and start a new game? **(y/n)**")
+            msg = await client.wait_for('message', check=check)
+
+            if 'y' in msg.content.lower(): await end_game(Game, players, msg)
+            else: await message.channel.send("Canceling new game")
 
         players = [message.author, message.mentions[0]]
         Game = logic.Board(assets, 15)
