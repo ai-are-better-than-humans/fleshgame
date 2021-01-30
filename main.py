@@ -1,5 +1,6 @@
 import logic
 import discord
+from io import BytesIO
 
 
 TOKEN = 'your-token'
@@ -23,8 +24,11 @@ def send_board(brd_imgs):
     embed = discord.Embed(title=f"**Its** {players[Game.turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game.turn])
     embed.set_footer(text="have fun lmfao")
 
-    brd_imgs[0].save(f'gif_files\current_board.gif', save_all=True, append_images=brd_imgs, duration=1000)
-    file = discord.File("gif_files\current_board.gif", filename="image.gif")
+    output_gif = BytesIO()
+    brd_imgs[0].save(output_gif, save_all=True, format='GIF', append_images=brd_imgs, duration=1000)
+    output_gif.seek(0)
+    
+    file = discord.File(output_gif, filename="image.gif")
     embed.set_image(url="attachment://image.gif")
     return file, embed
 
