@@ -38,8 +38,9 @@ async def on_message(message):
     if message.content.startswith(wake_command + "endgame") and (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
         Game = None
         players = []
-
         await message.add_reaction("👍")
+    
+    # Some help commands if anyone is confused about why 'x' didnt work
     elif message.content.startswith(wake_command + "endgame") and Game is not None and not (message.author in players or message.author.guild_permissions.administrator):
         await message.channel.send("You do not have permission to end this game")
     elif message.content.startswith(wake_command + "endgame") and Game is None:
@@ -84,6 +85,7 @@ async def on_reaction_add(reaction, user):
     else:
         await reaction.message.channel.send(f"{players[Game.turn].mention}, that space is empty")
 
+    # Since there is no logic to detect a win, i do that here in the bot section
     if sum(Game.board[0]) == 0 or sum(Game.board[1]) == 0:
         Game.goals[0] += sum(Game.board[0])
         Game.goals[1] += sum(Game.board[1])
