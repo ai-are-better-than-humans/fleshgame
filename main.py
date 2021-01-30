@@ -39,8 +39,9 @@ async def on_message(message):
     if message.content.startswith(wake_command + "endgame") and (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
         Game = None
         players = []
+
         await message.add_reaction("👍")
-    
+
     # Some help commands if anyone is confused about why 'x' didnt work
     elif message.content.startswith(wake_command + "endgame") and Game is not None and not (message.author in players or message.author.guild_permissions.administrator):
         await message.channel.send("You do not have permission to end this game")
@@ -57,7 +58,7 @@ async def on_message(message):
 
         await message.channel.send(f"**Starting Mancala Game**\n    -{players[0].mention} vs {players[1].mention}")
 
-        file, embed = send_board([Game.img_board.get_board(Game.turn)[Game.turn]])
+        file, embed = send_board([Game.img_board.get_board(Game.turn)])
         current_embed = await message.channel.send(players[Game.turn].mention, file=file, embed=embed)
 
         for emoji in emojis:
@@ -78,7 +79,7 @@ async def on_reaction_add(reaction, user):
 
     imgs = Game.move(emojis.index(reaction.emoji))
     if imgs is not None:
-        file, embed = send_board(imgs[Game.turn])
+        file, embed = send_board(imgs)
         current_embed = await reaction.message.channel.send(players[Game.turn].mention, file=file, embed=embed)
 
         for reaction.emoji in emojis:
