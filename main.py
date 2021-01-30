@@ -17,6 +17,7 @@ assets = 'assets'
 
 client = discord.Client()
 
+
 # Concatenates the images produced by the logic file and sends them as an embed
 def send_board(brd_imgs):
     embed = discord.Embed(title=f"**Its** {players[Game.turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game.turn])
@@ -26,6 +27,10 @@ def send_board(brd_imgs):
     file = discord.File("gif_files\current_board.gif", filename="image.gif")
     embed.set_image(url="attachment://image.gif")
     return file, embed
+
+@client.event
+async def on_ready():
+    await client.change_presence(activity=discord.Game(name="ur mom lmao"))
 
 @client.event
 async def on_message(message):
