@@ -11,11 +11,11 @@ players = []
 Game = None
 
 colors = (0xFD2D00, 0x0092FD)
-emojis = ["6️⃣","5️⃣","4️⃣","3️⃣","2️⃣","1️⃣"]
+emojis = ["6️⃣", "5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"]
+wake_command = "pp!"
 assets = 'assets'
 
 client = discord.Client()
-wake_command = "pp!"
 
 def send_board(brd_imgs):
     embed = discord.Embed(title=f"**Its** {players[Game.turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game.turn])
@@ -29,6 +29,7 @@ def send_board(brd_imgs):
 @client.event
 async def on_message(message):
     global Game
+    global players
     global current_embed
 
     if message.author == client.user:
@@ -36,8 +37,8 @@ async def on_message(message):
 
     if message.content.startswith(wake_command + "endgame") and (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
         Game = None
+        players = []
 
-        players.clear()
         await message.add_reaction("👍")
     elif message.content.startswith(wake_command + "endgame") and Game is not None and not (message.author in players or message.author.guild_permissions.administrator):
         await message.channel.send("You do not have permission to end this game")
@@ -49,10 +50,9 @@ async def on_message(message):
             await message.channel.send("Go find a friend, loser.")
             return
 
-        players.append(message.author)
-        players.append(message.mentions[0])
-
+        players = [message.author, message.mentions[0]]
         Game = logic.Board(assets, 15)
+
         await message.channel.send(f"**Starting Mancala Game**\n    -{players[0].mention} vs {players[1].mention}")
 
         file, embed = send_board([Game.img_board.get_board(Game.turn)[Game.turn]])
@@ -71,18 +71,16 @@ async def on_reaction_add(reaction, user):
     global Game
     global current_embed
 
-    emoji = reaction.emoji
+    if user.bot or Game is None or reaction.message != current_embed: return
+    if user != players[Game.turn] or reaction.emoji not in emojis: return
 
-    if user.bot or len(players) == 0 or reaction.message != current_embed: return
-    if user != players[Game.turn] or emoji not in emojis: return
-
-    imgs = Game.move(emojis.index(emoji))
+    imgs = Game.move(emojis.index(reaction.emoji))
     if imgs is not None:
         file, embed = send_board(imgs[Game.turn])
         current_embed = await reaction.message.channel.send(players[Game.turn].mention, file=file, embed=embed)
 
-        for emoji in emojis:
-            await current_embed.add_reaction(emoji)
+        for reaction.emoji in emojis:
+            await current_embed.add_reaction(reaction.emoji)
     else:
         await reaction.message.channel.send(f"{players[Game.turn].mention}, that space is empty")
 
@@ -98,8 +96,8 @@ async def on_reaction_add(reaction, user):
         embed.set_image(url=players[winner].avatar_url)
         final = await reaction.message.channel.send(players[winner].mention, embed=embed)
         await final.add_reaction("👍")
-        players.clear()
 
+        players.clear()
         Game = None
 
 
