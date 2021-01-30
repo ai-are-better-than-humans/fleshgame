@@ -5,12 +5,14 @@ from os.path import join
 
 
 
+# Class to contain the individual colors and offsets of each rock
 class Rock(object):
     def __init__(self, costume, offset):
         self.ico = costume.rotate(offset[2]).convert('RGBA')
         self.pos_offset = (offset[0], offset[1])
 
-
+        
+# Class to handle the GIF animation of the moves
 class MancalaBoard(object):
     def __init__(self, asset_dir, variance, size=80):
         self.board_ico = Image.open(join(asset_dir, "board.png"))
@@ -36,7 +38,15 @@ class MancalaBoard(object):
         board2 = self.board_ico.copy()
 
         font = ImageFont.truetype(r'C:\Users\System-Pc\Desktop\arial.ttf', numsize)
-
+        
+        '''
+        This loop generates two images, one for if its player 1's turn, and one if its player 2's turn,
+            (so that it can be facing the correct orientation each time)
+            would be MUCH more efficient if i could know the ending orientation of a players turn
+            so that instead of generating two possibilities and throwing one away, I could just use the correct one
+            
+            **Havent figured this out yet
+        '''
         for x in range(2):
             for j, i in enumerate(self.zones[x]):
                 for ii in i:
@@ -72,10 +82,10 @@ class MancalaBoard(object):
                 draw = ImageDraw.Draw(board2)
                 draw.text(score[x], str(len(self.goals[(x + 1) % 2])), fill="black", font=font, align="right")
 
-        return self.gen_frame(board1), self.gen_frame(board2)
+        return self.add_transparency(board1), self.add_transparency(board2)
 
     @staticmethod
-    def gen_frame(im):
+    def add_transparency(im):
         alpha = im.getchannel('A')
         im = im.convert('RGB').convert('P', palette=Image.ADAPTIVE, colors=255)
         mask = Image.eval(alpha, lambda a: 255 if a <= 128 else 0)
@@ -84,7 +94,8 @@ class MancalaBoard(object):
         im.info['transparency'] = 255
         return im
 
-
+    
+# Class to handle the Logic of the moves
 class Board(object):
     def __init__(self, asset_dir, offset):
         self.board = ([4, 4, 4, 4, 4, 4], [4, 4, 4, 4, 4, 4])
@@ -96,19 +107,31 @@ class Board(object):
         images = []
         current_slot = slot
         count = [self.board[self.turn][slot], list(self.img_board.zones[self.turn][slot])]
+        
+        # Prevents you from moving an empty space
         if count[0] == 0: return
 
+        # Saves the image of the board before all the rocks in that cell are removed
         images.append(self.img_board.get_board())
 
         self.board[self.turn][slot] = 0
         self.img_board.zones[self.turn][slot].clear()
 
+        # Saves the image of the board after all the rocks in that cell are removed
         images.append(self.img_board.get_board())
-
+        
+        '''
+        -This logic is a fucking mess. I think I wrote it when i was high????? 
+            I try to make it better and fix some errors that ONLY come up when playing for a long time (Everything seems okay at first glance)
+            But when i do it gets fucked up. I am so embarrased about this
+            Im almost certain that theres a super easy way to do mancala logic but im just scared to change anything
+            Have fun.
+        '''
         while count[0] > 0:
             current_slot += 1
             side = int((self.turn + (current_slot - (current_slot % 6)) / 6) % 2)
 
+            # This is supposed to handle cases when the stone ends up at one of the pots
             if not current_slot % 6 and current_slot % 12:
                 self.goals[self.turn] += 1
                 self.img_board.goals[self.turn].append(count[1][count[0]%len(count[1])])
@@ -125,6 +148,8 @@ class Board(object):
 
                 if count[0] == 0:
 
+                    # This part is the most buggy, its supposed to handle capturing peices
+                    # Yet for some reason it will capture peices that arent supposed to be captured???
                     if self.board[self.turn][current_slot % 6] == 1 and self.board[(self.turn - 1) % 2][5 - current_slot % 6] != 0:
                         self.goals[self.turn] += self.board[self.turn][current_slot % 6] + self.board[(self.turn - 1) % 2][5 - current_slot % 6]
 
