@@ -27,7 +27,7 @@ def send_board(brd_imgs):
     output_gif = BytesIO()
     brd_imgs[0].save(output_gif, save_all=True, format='GIF', append_images=brd_imgs, duration=1000)
     output_gif.seek(0)
-    
+
     file = discord.File(output_gif, filename="image.gif")
     embed.set_image(url="attachment://image.gif")
     return file, embed
@@ -45,7 +45,10 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    async def end_game(Game, players, response):
+    async def end_game(response):
+        global Game
+        global players
+
         if (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
             Game = None
             players = []
@@ -59,10 +62,25 @@ async def on_message(message):
             await response.channel.send("There are no games to end")
 
     if message.content.startswith(wake_command + "endgame"):
-        await end_game(Game, players, message)
+        await end_game(message)
 
     def check(m):
         return ('y' in m.content.lower() or 'n' in m.content.lower()) and m.channel == message.channel and (m.author in players or message.author.guild_permissions.administrator)
+
+    if message.content.startswith(wake_command + "help"):
+        embed = discord.Embed(title=f"alright you dumb bitch",
+                             description="*heres how this shit works*:", color=0x228B22)
+        embed.add_field(name="First of all - im not teaching you this shit", value="Go to https://www.ymimports.com/pages/how-to-play-mancala if you really wanna learn, dont ask me",
+                        inline=False)
+        embed.add_field(name="If youre so much of a social outcast that you already know how to play",
+                        value="Id suggest you find some friends, and if by gods grace they like you, use `pp!startgame @person` to play with them",
+                        inline=True)
+        embed.add_field(name="And when your friends realize they hate playing with you",
+                        value="they can use `pp!endgame` to get the fuck out of there",
+                        inline=True)
+        embed.set_footer(text="git good smh my h")
+
+        await message.channel.send(message.author.mention, embed=embed)
 
     if message.content.startswith(wake_command + "startgame") and len(message.mentions) > 0:
         if message.mentions[0] == client.user:
@@ -74,7 +92,7 @@ async def on_message(message):
             await message.channel.send("You are already playing a game. End this and start a new game? **(y/n)**")
             msg = await client.wait_for('message', check=check)
 
-            if 'y' in msg.content.lower(): await end_game(Game, players, msg)
+            if 'y' in msg.content.lower(): await end_game(msg)
             else: await message.channel.send("Canceling new game")
 
         players = [message.author, message.mentions[0]]
@@ -99,7 +117,7 @@ async def on_reaction_add(reaction, user):
     global current_embed
 
     if user.bot or Game is None or reaction.message != current_embed: return
-    if user != players[Game.turn] or reaction.emoji not in emojis: return
+    if user != players[Game.turn] or reaction.emoji not in emojis or players == []: return
 
     imgs = Game.move(emojis.index(reaction.emoji))
     if imgs is not None:
@@ -118,7 +136,7 @@ async def on_reaction_add(reaction, user):
 
         winner = Game.goals.index(max(Game.goals))
 
-        embed = discord.Embed(title=f"**{players[winner]} WON!!!!!11!!1!!**", color=colors[winner])
+        embed = discord.Embed(title=f"**{players[winner]} WON!!!!!11!!1!!**", description="bitch got *played*", color=colors[winner])
         embed.set_footer(text="gg")
 
         embed.set_image(url=players[winner].avatar_url)
