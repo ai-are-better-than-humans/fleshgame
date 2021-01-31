@@ -9,7 +9,7 @@ global players
 global Game
 
 players = []
-Game = None
+Game = []
 
 colors = (0xFD2D00, 0x0092FD)
 emojis = ["6️⃣", "5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"]
@@ -20,8 +20,8 @@ client = discord.Client()
 
 
 # Concatenates the images produced by the logic file and sends them as an embed
-def send_board(brd_imgs):
-    embed = discord.Embed(title=f"**Its** {players[Game.turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game.turn])
+def send_board(brd_imgs, index):
+    embed = discord.Embed(title=f"**Its** {players[index][Game[index][0].turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game[index][0].turn])
     embed.set_footer(text="have fun lmfao")
 
     output_gif = BytesIO()
@@ -32,6 +32,13 @@ def send_board(brd_imgs):
     embed.set_image(url="attachment://image.gif")
     return file, embed
 
+# Grabs the index of the current player
+def player_index(author):
+    games = [j for j, i in enumerate(players) if author.id in (i[0].id, i[1].id)]
+    if len(games) > 0:
+        return games[0]
+    return False
+
 @client.event
 async def on_ready():
     await client.change_presence(activity=discord.Game(name="ur mom lmao"))
@@ -40,32 +47,41 @@ async def on_ready():
 async def on_message(message):
     global Game
     global players
-    global current_embed
 
     if message.author == client.user:
         return
 
     async def end_game(response):
-        global Game
-        global players
-
-        if (message.author in players or message.author.guild_permissions.administrator) and Game is not None:
-            Game = None
-            players = []
+        games = player_index(message.author)
+        if games is not False:
+            Game.pop(games)
+            players.pop(games)
 
             await response.add_reaction("👍")
 
-        # Some help commands if anyone is confused about why 'x' didnt work
-        elif Game is not None and not (response.author in players or response.author.guild_permissions.administrator):
-            await response.channel.send("You do not have permission to end this game")
-        elif Game is None:
-            await response.channel.send("There are no games to end")
+        else:
+            await response.channel.send("You are not currently in a game")
+
 
     if message.content.startswith(wake_command + "endgame"):
         await end_game(message)
 
+    if message.content.startswith(wake_command + "endall") and message.author.guild_permissions.administrator:
+        games = [j for j, i in enumerate(Game) if i[1].guild == message.guild]
+
+        if len(games) > 0:
+            for i in games:
+                Game.pop(i)
+                players.pop(i)
+
+            await message.add_reaction("👍")
+        else:
+            await message.channel.send("Your server currently has no active games")
+    elif message.content.startswith(wake_command + "endall") and not message.author.guild_permissions.administrator:
+        await message.channel.send("You must be an administrator to end all active games")
+
     def check(m):
-        return ('y' in m.content.lower() or 'n' in m.content.lower()) and m.channel == message.channel and (m.author in players or message.author.guild_permissions.administrator)
+        return ('y' in m.content.lower() or 'n' in m.content.lower()) and m.channel == message.channel and player_index(m.author) is not False
 
     if message.content.startswith(wake_command + "help"):
         embed = discord.Embed(title=f"alright you dumb bitch",
@@ -78,6 +94,9 @@ async def on_message(message):
         embed.add_field(name="And when your friends realize they hate playing with you",
                         value="they can use `pp!endgame` to get the fuck out of there",
                         inline=True)
+        embed.add_field(name="And when the mods realize youre playing this trash",
+                        value="they can stop that shit with `pp!endall`",
+                        inline=False)
         embed.set_footer(text="git good smh my h")
 
         await message.channel.send(message.author.mention, embed=embed)
@@ -87,64 +106,70 @@ async def on_message(message):
             await message.channel.send("Go find a friend, loser.")
             return
 
-        elif len(players) != 0 and (message.author in players or message.author.guild_permissions.administrator):
+        elif player_index(message.author) is not False:
 
             await message.channel.send("You are already playing a game. End this and start a new game? **(y/n)**")
             msg = await client.wait_for('message', check=check)
 
             if 'y' in msg.content.lower(): await end_game(msg)
-            else: await message.channel.send("Canceling new game")
+            else:
+                await message.channel.send("Canceling new game")
+                return
 
-        players = [message.author, message.mentions[0]]
-        Game = logic.Board(assets, 15)
+        players.append([message.author, message.mentions[0]])
+        Game.append([logic.Board(assets, 15)])
+        current_game = Game[len(Game)-1][0]
 
-        await message.channel.send(f"**Starting Mancala Game**\n    -{players[0].mention} vs {players[1].mention}")
+        await message.channel.send(f"**Starting Mancala Game**\n    -{players[len(players)-1][0].mention} vs {players[len(players)-1][1].mention}")
 
-        file, embed = send_board([Game.img_board.get_board(Game.turn)])
-        current_embed = await message.channel.send(players[Game.turn].mention, file=file, embed=embed)
+        file, embed = send_board([current_game.img_board.get_board(current_game.turn)], len(Game)-1)
+        Game[len(Game)-1].append(await message.channel.send(players[len(players)-1][current_game.turn].mention, file=file, embed=embed))
 
         for emoji in emojis:
-            await current_embed.add_reaction(emoji)
+            await Game[len(Game)-1][1].add_reaction(emoji)
 
     elif message.content.startswith(wake_command + "startgame") and len(message.mentions) == 0:
         await message.channel.send("You need one other person to start")
-    elif message.content.startswith(wake_command + "startgame") and len(players) != 0:
-        await message.channel.send("There is currently a game in progress")
 
 @client.event
 async def on_reaction_add(reaction, user):
     global Game
-    global current_embed
+    global players
 
-    if user.bot or Game is None or reaction.message != current_embed: return
-    if user != players[Game.turn] or reaction.emoji not in emojis or players == []: return
+    if user.bot or reaction.emoji not in emojis:
+        return
 
-    imgs = Game.move(emojis.index(reaction.emoji))
+    index = player_index(user)
+    if index is False or reaction.message != Game[index][1]:
+        return
+
+    current_game = Game[index][0]
+    imgs = current_game.move(emojis.index(reaction.emoji))
     if imgs is not None:
-        file, embed = send_board(imgs)
-        current_embed = await reaction.message.channel.send(players[Game.turn].mention, file=file, embed=embed)
+        file, embed = send_board(imgs, index)
+        Game[index][1] = await reaction.message.channel.send(players[index][current_game.turn].mention, file=file, embed=embed)
 
         for reaction.emoji in emojis:
-            await current_embed.add_reaction(reaction.emoji)
+            await Game[index][1].add_reaction(reaction.emoji)
     else:
-        await reaction.message.channel.send(f"{players[Game.turn].mention}, that space is empty")
+        await reaction.message.channel.send(f"{players[index][current_game.turn].mention}, that space is empty")
 
     # Since there is no logic to detect a win, i do that here in the bot section
-    if sum(Game.board[0]) == 0 or sum(Game.board[1]) == 0:
-        Game.goals[0] += sum(Game.board[0])
-        Game.goals[1] += sum(Game.board[1])
+    if sum(current_game.board[0]) == 0 or sum(current_game.board[1]) == 0:
+        current_game.goals[0] += sum(current_game.board[0])
+        current_game.goals[1] += sum(current_game.board[1])
 
-        winner = Game.goals.index(max(Game.goals))
+        winner = current_game.goals.index(max(current_game.goals))
 
-        embed = discord.Embed(title=f"**{players[winner]} WON!!!!!11!!1!!**", description="bitch got *played*", color=colors[winner])
+        embed = discord.Embed(title=f"**{players[index][winner]} WON!!!!!11!!1!!**", description="bitch got *played*", color=colors[winner])
         embed.set_footer(text="gg")
 
-        embed.set_image(url=players[winner].avatar_url)
-        final = await reaction.message.channel.send(players[winner].mention, embed=embed)
+        embed.set_image(url=players[index][winner].avatar_url)
+        final = await reaction.message.channel.send(players[index][winner].mention, embed=embed)
         await final.add_reaction("👍")
 
-        players.clear()
-        Game = None
+        players.pop(index)
+        Game.pop(index)
 
 
 client.run(TOKEN)
