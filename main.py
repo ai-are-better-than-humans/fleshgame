@@ -51,7 +51,7 @@ async def on_message(message):
     if message.author == client.user:
         return
     if message.channel.type is discord.ChannelType.private:
-        await message.channel.send("Why are you dm'ing me\n*im a fucking robot*")
+        await message.channel.send("Why are you dm'ing me\n*im a literal robot*")
         return
 
     async def end_game(response):
@@ -87,18 +87,18 @@ async def on_message(message):
         return ('y' in m.content.lower() or 'n' in m.content.lower()) and m.channel == message.channel and player_index(m.author) is not False
 
     if message.content.startswith(wake_command + "help"):
-        embed = discord.Embed(title=f"alright you dumb bitch",
-                             description="*heres how this shit works*:", color=0x228B22)
-        embed.add_field(name="First of all - im not teaching you this shit", value="Go to https://www.ymimports.com/pages/how-to-play-mancala if you really wanna learn, dont ask me",
+        embed = discord.Embed(title=f"alright you dumb idiot",
+                             description="*heres how this works*:", color=0x228B22)
+        embed.add_field(name="First of all - im not teaching you this", value="Go to https://www.ymimports.com/pages/how-to-play-mancala if you really wanna learn, dont ask me",
                         inline=False)
         embed.add_field(name="If youre so much of a social outcast that you already know how to play",
                         value="Id suggest you find some friends, and if by gods grace they like you, use `pp!startgame @person` to play with them",
                         inline=True)
         embed.add_field(name="And when your friends realize they hate playing with you",
-                        value="they can use `pp!endgame` to get the fuck out of there",
+                        value="they can use `pp!endgame` to get out of there",
                         inline=True)
         embed.add_field(name="And when the mods realize youre playing this trash",
-                        value="they can stop that shit with `pp!endall`",
+                        value="they can stop that with `pp!endall`",
                         inline=False)
         embed.set_footer(text="git good smh my h")
 
@@ -164,7 +164,7 @@ async def on_reaction_add(reaction, user):
 
         winner = current_game.goals.index(max(current_game.goals))
 
-        embed = discord.Embed(title=f"**{players[index][winner]} WON!!!!!11!!1!!**", description="bitch got *played*", color=colors[winner])
+        embed = discord.Embed(title=f"**{players[index][winner]} WON!!!!!11!!1!!**", description="you got *played*", color=colors[winner])
         embed.set_footer(text="gg")
 
         embed.set_image(url=players[index][winner].avatar_url)
