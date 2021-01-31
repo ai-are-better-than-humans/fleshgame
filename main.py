@@ -22,7 +22,7 @@ client = discord.Client()
 # Concatenates the images produced by the logic file and sends them as an embed
 def send_board(brd_imgs, index):
     embed = discord.Embed(title=f"**Its** {players[index][Game[index][0].turn]}**'s Turn!**", description="Move your peices by reacting with a slot number!", color=colors[Game[index][0].turn])
-    embed.set_footer(text="have fun lmfao")
+    embed.set_footer(text="have fun")
 
     output_gif = BytesIO()
     brd_imgs[0].save(output_gif, save_all=True, format='GIF', append_images=brd_imgs, duration=1000)
@@ -41,7 +41,7 @@ def player_index(author):
 
 @client.event
 async def on_ready():
-    await client.change_presence(activity=discord.Game(name="ur mom lmao"))
+    await client.change_presence(activity=discord.Game(name="ur mom"))
 
 @client.event
 async def on_message(message):
