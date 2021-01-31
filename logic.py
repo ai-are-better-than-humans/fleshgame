@@ -124,7 +124,7 @@ class Board(object):
                 # Yet for some reason it will capture peices that arent supposed to be captured???
                 if count[0] == 0:
 
-                    if self.board[self.turn][current_slot % 6] == 1 and self.board[(self.turn - 1) % 2][5 - current_slot % 6] != 0:
+                    if side == self.turn and self.board[self.turn][current_slot % 6] == 1 and self.board[(self.turn - 1) % 2][5 - current_slot % 6] != 0:
                         self.goals[self.turn] += self.board[self.turn][current_slot % 6] + self.board[(self.turn - 1) % 2][5 - current_slot % 6]
 
                         self.img_board.goals[self.turn].extend(self.img_board.zones[self.turn][current_slot % 6])
