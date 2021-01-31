@@ -50,6 +50,9 @@ async def on_message(message):
 
     if message.author == client.user:
         return
+    if message.channel.type is discord.ChannelType.private:
+        await message.channel.send("Why are you dm'ing me\n*im a fucking robot*")
+        return
 
     async def end_game(response):
         games = player_index(message.author)
