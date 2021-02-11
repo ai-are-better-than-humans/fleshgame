@@ -152,8 +152,8 @@ async def on_reaction_add(reaction, user):
         file, embed = send_board(imgs, index)
         Game[index][1] = await reaction.message.channel.send(players[index][current_game.turn].mention, file=file, embed=embed)
 
-        for reaction.emoji in emojis:
-            await Game[index][1].add_reaction(reaction.emoji)
+        for emoji in emojis:
+            await Game[index][1].add_reaction(emoji)
     else:
         await reaction.message.channel.send(f"{players[index][current_game.turn].mention}, that space is empty")
 
